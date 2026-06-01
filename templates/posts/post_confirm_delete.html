@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Удалить пост — Igrovorot{% endblock %}
+{% block content %}
+<div class="post-delete">
+    <h1>Удалить пост</h1>
+    <p>Вы уверены, что хотите удалить пост <strong style="color:var(--text)">{{ post.title }}</strong>?</p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-actions">
+            <button type="submit" class="btn btn--danger">Удалить</button>
+            <a href="{% url 'post_detail' post.pk %}" class="btn btn--ghost">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block title %}Лента — Igrovorot{% endblock %}
+
+{% block content %}
+<div class="feed-layout">
+    <div class="feed" id="feed-container"
+         data-next-page="{% if page_obj.has_next %}{{ page_obj.next_page_number }}{% endif %}">
+        {% include 'posts/feed_items.html' %}
+        {% if not page_obj %}
+            <p class="feed__empty">
+                {% if request.user.is_authenticated %}
+                    Подпишитесь на авторов, чтобы видеть их посты.
+                {% else %}
+                    Постов пока нет.
+                {% endif %}
+            </p>
+        {% endif %}
+        <div class="feed__sentinel" id="feed-sentinel"></div>
+        <div class="feed__loader" id="feed-loader" style="display:none">
+            <span class="feed__loader-dot"></span>
+            <span class="feed__loader-dot"></span>
+            <span class="feed__loader-dot"></span>
+        </div>
+    </div>
+
+    <aside class="feed-sidebar">
+        {% if active_authors %}
+            <div class="widget">
+                <h3 class="widget__title">Активные авторы</h3>
+                <div class="widget__authors">
+                    {% for author in active_authors %}
+                        <div class="widget__author">
+                            <a href="{% url 'profile' author.username %}" class="widget__author-info">
+                                <div class="widget__avatar">
+                                    {% if author.profile.avatar %}
+                                        <img src="{{ author.profile.avatar.url }}" alt="">
+                                    {% else %}
+                                        {{ author.username|first|upper }}
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <div class="widget__author-name">{{ author.username }}</div>
+                                    <div class="widget__author-meta">{{ author.recent_post_count }} пост{{ author.recent_post_count|pluralize:",,ов" }} за неделю</div>
+                                </div>
+                            </a>
+                            {% if request.user.is_authenticated and author != request.user %}
+                                <form method="post" action="{% url 'follow' author.username %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn--sm {% if author.is_followed %}btn--ghost{% else %}btn--primary{% endif %}">
+                                        {% if author.is_followed %}Отписаться{% else %}+{% endif %}
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        {% if recommended_games %}
+            <div class="widget">
+                <h3 class="widget__title">Рекомендуемые игры</h3>
+                <div class="widget__games">
+                    {% for game in recommended_games %}
+                        <a href="{% url 'game_detail' game.slug %}" class="widget__game">
+                            <img class="widget__game-cover" src="{{ game.cover }}" alt="{{ game.title }}">
+                            <span class="widget__game-title">{{ game.title }}</span>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var container = document.getElementById('feed-container');
+    var sentinel = document.getElementById('feed-sentinel');
+    var loader = document.getElementById('feed-loader');
+    var loading = false;
+
+    function loadMore() {
+        var nextPage = container.dataset.nextPage;
+        if (!nextPage || loading) return;
+        loading = true;
+        loader.style.display = 'flex';
+
+        fetch('/feed/?page=' + nextPage + '&partial=1')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var tmp = document.createElement('div');
+                tmp.innerHTML = data.html;
+                while (tmp.firstChild) {
+                    container.insertBefore(tmp.firstChild, sentinel);
+                }
+                container.dataset.nextPage = data.has_next ? data.next_page : '';
+                loading = false;
+                loader.style.display = 'none';
+            })
+            .catch(function () {
+                loading = false;
+                loader.style.display = 'none';
+            });
+    }
+
+    if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (entries) {
+            if (entries[0].isIntersecting) loadMore();
+        }, { rootMargin: '200px' }).observe(sentinel);
+    }
+})();
+</script>
+{% endblock %}

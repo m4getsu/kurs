@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}Редактировать рецензию — Igrovorot{% endblock %}
+
+{% block content %}
+<div class="review-edit">
+    <h1>Редактировать рецензию — {{ review.game.title }}</h1>
+
+    <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% for error in field.errors %}
+                    <span class="form-error">{{ error }}</span>
+                {% endfor %}
+            </div>
+        {% endfor %}
+        <div class="form-actions">
+            <button type="submit" class="btn btn--primary">Сохранить</button>
+            <a href="{% url 'game_detail' review.game.slug %}" class="btn btn--ghost">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

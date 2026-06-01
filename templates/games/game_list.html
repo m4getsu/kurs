@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% load cache %}
+{% block title %}Каталог игр — Igrovorot{% endblock %}
+
+{% block content %}
+<div class="game-list-toolbar">
+    <h1>Каталог игр</h1>
+    <form method="get" style="display:flex;gap:8px;align-items:center">
+        {% if selected_genre %}<input type="hidden" name="genre" value="{{ selected_genre }}">{% endif %}
+        {% if sort %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+        <input type="text" name="q" value="{{ query }}" placeholder="Поиск по названию..." style="width:220px">
+        <button type="submit" class="btn btn--ghost btn--sm">Найти</button>
+    </form>
+</div>
+
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+    <div class="genre-filters" style="margin-bottom:0">
+        <a href="{% url 'games' %}{% if sort %}?sort={{ sort }}{% endif %}"
+           class="genre-filter {% if not selected_genre %}genre-filter--active{% endif %}">Все жанры</a>
+        {% for genre in genres %}
+            <a href="{% url 'games' %}?genre={{ genre.slug }}{% if sort %}&sort={{ sort }}{% endif %}"
+               class="genre-filter {% if selected_genre == genre.slug %}genre-filter--active{% endif %}">{{ genre.name }}</a>
+        {% endfor %}
+    </div>
+
+    {% if sort == 'rating' %}
+        <a href="?{% if selected_genre %}genre={{ selected_genre }}&{% endif %}{% if query %}q={{ query }}&{% endif %}"
+           class="sort-toggle sort-toggle--active">★ По рейтингу</a>
+    {% else %}
+        <a href="?{% if selected_genre %}genre={{ selected_genre }}&{% endif %}{% if query %}q={{ query }}&{% endif %}sort=rating"
+           class="sort-toggle">★ По рейтингу</a>
+    {% endif %}
+</div>
+
+{% cache 900 game_list selected_genre query sort page_obj.number games_version %}
+<div class="games-grid">
+    {% for game in page_obj %}
+        <a href="{% url 'game_detail' game.slug %}" class="game-card">
+            {% if game.cover %}
+                <img class="game-card__cover" src="{{ game.cover }}" alt="{{ game.title }}">
+            {% else %}
+                <div class="game-card__cover-placeholder">Нет обложки</div>
+            {% endif %}
+            <div class="game-card__body">
+                <div class="game-card__title">{{ game.title }}</div>
+                {% if game.developer %}<div class="game-card__dev">{{ game.developer }}</div>{% endif %}
+                {% if game.release_date %}<div class="game-card__date">{{ game.release_date }}</div>{% endif %}
+                {% if game.avg_rating %}
+                    <div class="game-card__rating">★ {{ game.avg_rating|floatformat:1 }}</div>
+                {% endif %}
+            </div>
+        </a>
+    {% empty %}
+        <p style="color:var(--text-dim);grid-column:1/-1;padding:40px 0;text-align:center">Игры не найдены.</p>
+    {% endfor %}
+</div>
+{% endcache %}
+
+{% if page_obj.has_other_pages %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if selected_genre %}&genre={{ selected_genre }}{% endif %}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">←</a>
+    {% endif %}
+
+    {% for p in first_pages %}
+        {% if p == page_obj.number %}
+            <strong>{{ p }}</strong>
+        {% else %}
+            <a href="?page={{ p }}{% if selected_genre %}&genre={{ selected_genre }}{% endif %}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">{{ p }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {% if show_dots %}
+        <span>…</span>
+        <strong>{{ page_obj.number }}</strong>
+        <span>…</span>
+    {% endif %}
+
+    {% for p in last_pages %}
+        {% if p == page_obj.number %}
+            <strong>{{ p }}</strong>
+        {% else %}
+            <a href="?page={{ p }}{% if selected_genre %}&genre={{ selected_genre }}{% endif %}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">{{ p }}</a>
+        {% endif %}
+    {% endfor %}
+
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if selected_genre %}&genre={{ selected_genre }}{% endif %}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">→</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

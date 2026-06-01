@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Редактировать пост — Igrovorot{% endblock %}
+{% block content %}
+<div class="post-create">
+    <h1>Редактировать пост</h1>
+    <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% for error in field.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+            </div>
+        {% endfor %}
+
+        {% if post.images.all %}
+            <div class="form-group">
+                <label>Текущие изображения</label>
+                <div class="post-images-existing">
+                    {% for img in post.images.all %}
+                        <div class="post-images-existing__item">
+                            <img src="{{ img.image.url }}" alt="">
+                            <form method="post" action="{% url 'post_image_delete' img.pk %}" class="post-images-existing__delete">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn--danger btn--sm" title="Удалить">×</button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="form-group">
+            <label>Добавить изображения</label>
+            <input type="file" name="images" multiple accept="image/*" class="post-images-input" id="images-input">
+            <small class="form-hint">Можно выбрать несколько файлов</small>
+            <div class="post-images-preview" id="images-preview"></div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn--primary">Сохранить</button>
+            <a href="{% url 'post_detail' post.pk %}" class="btn btn--ghost">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('images-input').addEventListener('change', function () {
+    var preview = document.getElementById('images-preview');
+    preview.innerHTML = '';
+    Array.from(this.files).forEach(function (file) {
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            var img = document.createElement('img');
+            img.src = e.target.result;
+            img.className = 'post-images-preview__img';
+            preview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+    });
+});
+</script>
+{% endblock %}

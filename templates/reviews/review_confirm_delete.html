@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Удалить рецензию — Igrovorot{% endblock %}
+{% block content %}
+<div class="review-delete">
+    <h1>Удалить рецензию</h1>
+    <p>Вы уверены, что хотите удалить рецензию на игру <strong style="color:var(--text)">{{ review.game.title }}</strong>?</p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-actions">
+            <button type="submit" class="btn btn--danger">Удалить</button>
+            <a href="{% url 'game_detail' review.game.slug %}" class="btn btn--ghost">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

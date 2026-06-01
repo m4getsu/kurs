@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}Аккаунт заблокирован — Igrovorot{% endblock %}
+
+{% block content %}
+<div class="banned">
+    <h1>Ваш аккаунт заблокирован</h1>
+
+    <p>
+        <strong>Срок:</strong>
+        {% if profile.banned_until %}
+            до {{ profile.banned_until|date:"d.m.Y H:i" }}
+        {% else %}
+            бессрочно
+        {% endif %}
+    </p>
+
+    {% if profile.ban_reason %}
+        <p><strong>Причина:</strong> {{ profile.ban_reason }}</p>
+    {% endif %}
+
+    <p>Если вы считаете, что блокировка была применена ошибочно, обратитесь к администрации.</p>
+</div>
+{% endblock %}

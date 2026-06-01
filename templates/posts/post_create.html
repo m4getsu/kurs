@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Новый пост — Igrovorot{% endblock %}
+{% block content %}
+<div class="post-create">
+    <h1>Новый пост</h1>
+    <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% for error in field.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+            </div>
+        {% endfor %}
+        <div class="form-group">
+            <label>Изображения</label>
+            <input type="file" name="images" multiple accept="image/*" class="post-images-input" id="images-input">
+            <small class="form-hint">Можно выбрать несколько файлов</small>
+            <div class="post-images-preview" id="images-preview"></div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn--primary">Опубликовать</button>
+            <a href="{% url 'post_list' %}" class="btn btn--ghost">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('images-input').addEventListener('change', function () {
+    var preview = document.getElementById('images-preview');
+    preview.innerHTML = '';
+    Array.from(this.files).forEach(function (file) {
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            var img = document.createElement('img');
+            img.src = e.target.result;
+            img.className = 'post-images-preview__img';
+            preview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
+    });
+});
+</script>
+{% endblock %}

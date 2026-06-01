@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}Поиск: {{ q }} — Igrovorot{% endblock %}
+
+{% block content %}
+<div class="search">
+    {% if from_cookie %}
+        <div class="search__cookie-notice">
+            Показаны результаты вашего последнего поиска: <strong>{{ q }}</strong>
+        </div>
+    {% endif %}
+
+    {% if q %}
+        <section>
+            <h2>Игры ({{ games|length }})</h2>
+            {% if games %}
+                <ul>
+                    {% for game in games %}
+                        <li>
+                            {% if game.cover %}
+                                <img src="{{ game.cover }}" alt="{{ game.title }}" width="60">
+                            {% endif %}
+                            <a href="{% url 'game_detail' game.slug %}">{{ game.title }}</a>
+                            {% if game.developer %}<span>{{ game.developer }}</span>{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Игры не найдены.</p>
+            {% endif %}
+        </section>
+
+        <section>
+            <h2>Посты ({{ posts|length }})</h2>
+            {% if posts %}
+                <ul>
+                    {% for post in posts %}
+                        <li>
+                            <a href="{% url 'post_detail' post.pk %}">{{ post.title }}</a>
+                            <span>{{ post.author.username }}</span>
+                            <span>{{ post.created_at|date:"d.m.Y" }}</span>
+                            {% if post.tags %}<span>{{ post.tags }}</span>{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Посты не найдены.</p>
+            {% endif %}
+        </section>
+
+        <section>
+            <h2>Профили ({{ users|length }})</h2>
+            {% if users %}
+                <ul>
+                    {% for u in users %}
+                        <li>
+                            <a href="{% url 'profile' u.username %}">{{ u.username }}</a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>Пользователи не найдены.</p>
+            {% endif %}
+        </section>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}Редактировать профиль — Igrovorot{% endblock %}
+
+{% block content %}
+<div class="profile-edit">
+    <h1>Редактировать профиль</h1>
+
+    <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label>{{ form.avatar.label }}</label>
+            {% if form.instance.avatar %}
+                <div class="profile-edit__current-avatar">
+                    <img src="{{ form.instance.avatar.url }}" alt="Текущий аватар">
+                    <span>Текущий аватар</span>
+                </div>
+            {% endif %}
+            {{ form.avatar }}
+            {% for error in form.avatar.errors %}
+                <span class="form-error">{{ error }}</span>
+            {% endfor %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.bio.id_for_label }}">{{ form.bio.label }}</label>
+            {{ form.bio }}
+            {% for error in form.bio.errors %}
+                <span class="form-error">{{ error }}</span>
+            {% endfor %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.birth_date.id_for_label }}">{{ form.birth_date.label }}</label>
+            {{ form.birth_date }}
+            {% for error in form.birth_date.errors %}
+                <span class="form-error">{{ error }}</span>
+            {% endfor %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.steam_id.id_for_label }}">{{ form.steam_id.label }}</label>
+            {{ form.steam_id }}
+            {% for error in form.steam_id.errors %}
+                <span class="form-error">{{ error }}</span>
+            {% endfor %}
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn--primary">Сохранить</button>
+            <a href="{% url 'profile' username=request.user.username %}" class="btn btn--ghost">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ profile_user.username }} — Igrovorot{% endblock %}
+
+{% block content %}
+<div class="profile">
+    <div class="profile__header">
+        {% if profile.avatar %}
+            <img class="profile__avatar" src="{{ profile.avatar.url }}" alt="Аватар {{ profile_user.username }}">
+        {% else %}
+            <div class="profile__avatar profile__avatar--placeholder">{{ profile_user.username|first|upper }}</div>
+        {% endif %}
+
+        <div class="profile__info">
+            <h1 class="profile__username">{{ profile_user.username }}</h1>
+
+            {% if profile.bio %}
+                <p class="profile__bio">{{ profile.bio }}</p>
+            {% endif %}
+
+            <div class="profile__meta">
+                {% if profile.birth_date %}
+                    <span class="profile__meta-item">Дата рождения: {{ profile.birth_date|date:"d.m.Y" }}</span>
+                {% endif %}
+                {% if profile.steam_id %}
+                    <span class="profile__meta-item">Steam ID: {{ profile.steam_id }}</span>
+                {% endif %}
+                <span class="profile__meta-item">На сайте с: {{ profile_user.date_joined|date:"d.m.Y" }}</span>
+            </div>
+
+            {% if profile.is_banned %}
+                <p class="profile__banned">Аккаунт заблокирован</p>
+            {% endif %}
+
+            <div class="profile__stats">
+                <span class="profile__stat"><strong class="followers-count">{{ followers_count }}</strong> подписчиков</span>
+                <span class="profile__stat"><strong>{{ following_count }}</strong> подписок</span>
+            </div>
+
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            {% if request.user == profile_user %}
+                <a href="{% url 'profile_edit' %}" class="btn btn--outlined btn--sm">Редактировать профиль</a>
+            {% elif request.user.is_authenticated %}
+                <button class="follow-btn {% if is_following %}follow-btn--active{% endif %}"
+                        data-username="{{ profile_user.username }}">
+                    {% if is_following %}Отписаться{% else %}Подписаться{% endif %}
+                </button>
+                <form method="post" action="{% url 'report_create' 'users' 'user' profile_user.pk %}" style="display:inline-flex;gap:6px;align-items:center">
+                    {% csrf_token %}
+                    <input type="text" name="reason" placeholder="Причина жалобы" required style="width:170px">
+                    <button type="submit" class="btn btn--ghost btn--sm">Пожаловаться</button>
+                </form>
+            {% else %}
+                <a href="{% url 'login' %}" class="btn btn--primary btn--sm">Войдите, чтобы подписаться</a>
+            {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="profile__content">
+
+        <section class="profile__posts">
+            <h2>Посты</h2>
+            {% if posts %}
+                <ul class="profile__list">
+                    {% for post in posts %}
+                        <li class="profile__list-item">
+                            <a href="{% url 'post_detail' post.pk %}">{{ post.title }}</a>
+                            <span class="profile__list-date">{{ post.created_at|date:"d.m.Y" }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="profile__empty">Постов пока нет.</p>
+            {% endif %}
+        </section>
+
+        <section class="profile__reviews">
+            <h2>Рецензии</h2>
+            {% if reviews %}
+                <ul class="profile__list">
+                    {% for review in reviews %}
+                        <li class="profile__list-item">
+                            <a href="{% url 'game_detail' review.game.slug %}">{{ review.game.title }}</a>
+                            <span class="profile__list-rating">{{ review.rating }}/10</span>
+                            <span class="profile__list-date">{{ review.created_at|date:"d.m.Y" }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="profile__empty">Рецензий пока нет.</p>
+            {% endif %}
+        </section>
+
+        {% if profile.steam_id %}
+        <section class="profile__steam">
+            <h2>Библиотека Steam</h2>
+            {% if steam_games %}
+                <table class="steam-table">
+                    <thead>
+                        <tr>
+                            <th>Игра</th>
+                            <th>Наиграно</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for game in steam_games %}
+                        <tr>
+                            <td class="steam-table__game">
+                                {% if game.icon_url %}
+                                    <img src="{{ game.icon_url }}" alt="" width="32" height="32">
+                                {% endif %}
+                                <span>{{ game.name }}</span>
+                            </td>
+                            <td>{{ game.playtime_hours }} ч.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="profile__empty">Не удалось загрузить библиотеку. Возможно профиль Steam закрытый.</p>
+            {% endif %}
+        </section>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% load static %}
+<script src="{% static 'js/csrf.js' %}"></script>
+<script src="{% static 'js/follow.js' %}"></script>
+{% endblock %}

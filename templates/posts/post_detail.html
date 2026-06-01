@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ post.title }} — Igrovorot{% endblock %}
+
+{% block content %}
+<div class="post-detail">
+
+    <div class="post-detail__header">
+        <h1 class="post-detail__title">{{ post.title }}</h1>
+        <div class="post-detail__meta">
+            <a href="{% url 'profile' post.author.username %}">{{ post.author.username }}</a>
+            <span>{{ post.created_at|date:"d.m.Y" }}</span>
+            {% if post.tags %}
+                <span class="post-detail__tags">
+                    {% for tag in post.tags.split %}
+                        {% with tag_clean=tag|cut:"," %}
+                            <a href="{% url 'post_list' %}?tag={{ tag_clean }}">{{ tag_clean }}</a>
+                        {% endwith %}
+                    {% endfor %}
+                </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+    {% if can_edit %}
+        <a href="{% url 'post_edit' post.pk %}" class="btn btn--outlined btn--sm">Редактировать</a>
+        <a href="{% url 'post_delete' post.pk %}" class="btn btn--danger btn--sm">Удалить</a>
+    {% elif request.user.is_authenticated %}
+        <form method="post" action="{% url 'report_create' 'posts' 'post' post.pk %}" style="display:inline-flex;gap:6px;align-items:center">
+            {% csrf_token %}
+            <input type="text" name="reason" placeholder="Причина жалобы" required style="width:200px">
+            <button type="submit" class="btn btn--ghost btn--sm">Пожаловаться</button>
+        </form>
+    {% endif %}
+    </div>
+
+    {% with imgs=post.images.all %}
+        {% if imgs %}
+            {% if imgs|length == 1 %}
+                <img class="post-detail__image" src="{{ imgs.0.image.url }}" alt="{{ post.title }}">
+            {% else %}
+                <div class="gallery" style="margin-bottom:20px">
+                    <div class="gallery__main">
+                        <img class="gallery__active" id="post-gallery-main" src="{{ imgs.0.image.url }}" alt="{{ post.title }}">
+                    </div>
+                    <div class="gallery__thumbs">
+                        {% for img in imgs %}
+                            <img class="gallery__thumb {% if forloop.first %}gallery__thumb--active{% endif %}"
+                                 src="{{ img.image.url }}" alt=""
+                                 onclick="gallerySelect(this, 'post-gallery-main')">
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        {% elif post.image %}
+            <img class="post-detail__image" src="{{ post.image.url }}" alt="{{ post.title }}">
+        {% endif %}
+    {% endwith %}
+
+    <div class="post-detail__content">{{ post.content|linebreaks }}</div>
+
+    <div class="post-detail__actions">
+        {% if request.user.is_authenticated %}
+            <button class="like-btn {% if user_liked %}like-btn--active{% endif %}"
+                    data-post-id="{{ post.pk }}">
+                ❤ <span class="like-count">{{ likes_count }}</span>
+            </button>
+        {% else %}
+            <span>❤ {{ likes_count }}</span>
+        {% endif %}
+    </div>
+
+</div>
+
+<section class="comments">
+    <h2>Комментарии ({{ comments.count }})</h2>
+
+    {% if comments %}
+        <ul class="comments__list">
+            {% for comment in comments %}
+                <li class="comments__item">
+                    <div class="comments__author">
+                        <a href="{% url 'profile' comment.author.username %}">{{ comment.author.username }}</a>
+                        <span class="comments__date">{{ comment.created_at|date:"d.m.Y" }}</span>
+                        {% if request.user == comment.author or is_moderator %}
+                            <form method="post" action="{% url 'comment_delete' comment.pk %}" style="display:inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn--danger btn--sm">Удалить</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                    <p class="comments__content">{{ comment.content }}</p>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="comments__empty">Комментариев пока нет.</p>
+    {% endif %}
+
+    {% if request.user.is_authenticated %}
+        <div class="comments__form">
+            <h3>Оставить комментарий</h3>
+            <form method="post">
+                {% csrf_token %}
+                {{ form }}
+                <button type="submit" class="btn btn--primary">Отправить</button>
+            </form>
+        </div>
+    {% else %}
+        <p><a href="{% url 'login' %}">Войдите</a>, чтобы оставить комментарий.</p>
+    {% endif %}
+
+</section>
+{% endblock %}
+
+{% block scripts %}
+{% load static %}
+<script src="{% static 'js/csrf.js' %}"></script>
+<script src="{% static 'js/deferred.js' %}"></script>
+<script src="{% static 'js/like.js' %}"></script>
+<script>
+function gallerySelect(thumb, mainId) {
+    document.getElementById(mainId).src = thumb.src;
+    thumb.closest('.gallery__thumbs').querySelectorAll('.gallery__thumb').forEach(function(t) {
+        t.classList.remove('gallery__thumb--active');
+    });
+    thumb.classList.add('gallery__thumb--active');
+    thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+}
+</script>
+{% endblock %}

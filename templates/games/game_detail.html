@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% block title %}{{ game.title }} — Igrovorot{% endblock %}
+
+{% block content %}
+<div class="game-detail">
+
+    {% if steam_data and steam_data.header_image %}
+        <img class="game-detail__hero" src="{{ steam_data.header_image }}" alt="{{ game.title }}">
+    {% elif game.cover %}
+        <img class="game-detail__hero" src="{{ game.cover }}" alt="{{ game.title }}">
+    {% endif %}
+
+    <div class="game-detail__genres">
+        {% for gg in genres %}
+            <span class="game-detail__genre">{{ gg.genre.name }}</span>
+        {% endfor %}
+    </div>
+
+    <h1 class="game-detail__title">{{ game.title }}</h1>
+
+    <div class="game-detail__meta">
+        {% if steam_data %}
+            {% if steam_data.developers %}<span>Разработчик: {{ steam_data.developers|join:", " }}</span>{% endif %}
+            {% if steam_data.publishers %}<span>Издатель: {{ steam_data.publishers|join:", " }}</span>{% endif %}
+            {% if steam_data.metacritic_score %}<span>Metacritic: <strong>{{ steam_data.metacritic_score }}</strong></span>{% endif %}
+            {% if steam_data.recommendations %}<span>Рекомендаций Steam: {{ steam_data.recommendations }}</span>{% endif %}
+        {% else %}
+            {% if game.developer %}<span>Разработчик: {{ game.developer }}</span>{% endif %}
+        {% endif %}
+        {% if game.release_date %}<span>Дата выхода: {{ game.release_date }}</span>{% endif %}
+    </div>
+
+    {% if steam_data %}
+        {% if steam_data.short_description %}
+            <p class="game-detail__desc">{{ steam_data.short_description }}</p>
+        {% endif %}
+    {% elif game.description %}
+        <p class="game-detail__desc">{{ game.description }}</p>
+    {% endif %}
+
+    <div class="game-detail__actions">
+        {% if steam_data %}<a href="{{ steam_data.steam_url }}" target="_blank" class="btn btn--secondary">Открыть в Steam</a>{% endif %}
+        {% if request.user.is_authenticated %}
+            {% for group in request.user.groups.all %}
+                {% if group.name == 'Moderator' %}
+                    <a href="{% url 'game_delete' game.slug %}" class="btn btn--danger btn--sm">Удалить игру</a>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    {% if steam_data.screenshots %}
+        <div class="gallery">
+            <div class="gallery__main">
+                <img class="gallery__active" id="gallery-main" src="{{ steam_data.screenshots.0 }}" alt="Скриншот">
+            </div>
+            <div class="gallery__thumbs" id="gallery-thumbs">
+                {% for screenshot in steam_data.screenshots %}
+                    <img class="gallery__thumb {% if forloop.first %}gallery__thumb--active{% endif %}"
+                         src="{{ screenshot }}"
+                         alt="Скриншот {{ forloop.counter }}"
+                         onclick="gallerySelect(this)">
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <section class="game-reviews">
+        <h2>Рецензии ({{ reviews.count }})</h2>
+
+        {% if avg_rating %}
+            <div class="avg-rating">
+                <div class="avg-rating__value">{{ avg_rating|floatformat:1 }}</div>
+                <div class="avg-rating__label">Средняя оценка<br>из 10</div>
+            </div>
+        {% endif %}
+
+        <form method="get" class="reviews-filter">
+            <select name="rating" onchange="this.form.submit()">
+                <option value="">Все оценки</option>
+                {% for i in rating_choices %}
+                    <option value="{{ i }}" {% if rating_filter == i|stringformat:"s" %}selected{% endif %}>{{ i }}/10</option>
+                {% endfor %}
+            </select>
+            {% if rating_filter %}<a href="?" class="btn btn--ghost btn--sm">Сбросить</a>{% endif %}
+        </form>
+
+        {% if reviews %}
+            <ul class="reviews-list">
+                {% for review in reviews %}
+                    <li class="reviews-list__item">
+                        <div class="reviews-list__meta">
+                            <a href="{% url 'profile' review.author.username %}">{{ review.author.username }}</a>
+                            <strong>{{ review.rating }}/10</strong>
+                            <span>{{ review.created_at|date:"d.m.Y" }}</span>
+                        </div>
+                        {% if review.content %}
+                            <p class="reviews-list__content">{{ review.content }}</p>
+                        {% endif %}
+                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                            {% if request.user.is_authenticated %}
+                                <button class="like-btn" data-review-id="{{ review.pk }}">
+                                    ♥ <span class="like-count"></span>
+                                </button>
+                                {% if review.author != request.user %}
+                                    <form method="post" action="{% url 'report_create' 'reviews' 'review' review.pk %}" style="display:inline">
+                                        {% csrf_token %}
+                                        <input type="text" name="reason" placeholder="Причина жалобы" required style="width:180px">
+                                        <button type="submit" class="btn btn--ghost btn--sm">Пожаловаться</button>
+                                    </form>
+                                {% endif %}
+                                {% for group in request.user.groups.all %}
+                                    {% if group.name == 'Moderator' %}
+                                        <a href="{% url 'review_delete' review.pk %}" class="btn btn--danger btn--sm">Удалить</a>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <span>♥ <span class="like-count" data-review-id="{{ review.pk }}"></span></span>
+                            {% endif %}
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p style="color:var(--text-dim);font-size:13px;padding:12px 0">Рецензий пока нет.</p>
+        {% endif %}
+
+        {% if user_review %}
+            <h3>Ваша рецензия</h3>
+            <div class="reviews-list__item">
+                <div class="reviews-list__meta">
+                    <strong>{{ user_review.rating }}/10</strong>
+                    <span>{{ user_review.created_at|date:"d.m.Y" }}</span>
+                </div>
+                {% if user_review.content %}<p class="reviews-list__content">{{ user_review.content }}</p>{% endif %}
+                <div style="display:flex;gap:8px">
+                    <a href="{% url 'review_edit' user_review.pk %}" class="btn btn--outlined btn--sm">Редактировать</a>
+                    <a href="{% url 'review_delete' user_review.pk %}" class="btn btn--danger btn--sm">Удалить</a>
+                </div>
+            </div>
+        {% elif review_form %}
+            <h3>Написать рецензию</h3>
+            <form method="post" action="{% url 'review_create' game.slug %}" novalidate>
+                {% csrf_token %}
+                {% for field in review_form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% for error in field.errors %}<span class="form-error">{{ error }}</span>{% endfor %}
+                    </div>
+                {% endfor %}
+                <button type="submit" class="btn btn--primary">Опубликовать рецензию</button>
+            </form>
+        {% else %}
+            <p style="color:var(--text-dim);font-size:13px"><a href="{% url 'login' %}" style="color:var(--primary)">Войдите</a>, чтобы оставить рецензию.</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% load static %}
+<script src="{% static 'js/csrf.js' %}"></script>
+<script src="{% static 'js/deferred.js' %}"></script>
+<script src="{% static 'js/like.js' %}"></script>
+<script>
+function gallerySelect(thumb) {
+    document.getElementById('gallery-main').src = thumb.src;
+    document.querySelectorAll('.gallery__thumb').forEach(function(t) {
+        t.classList.remove('gallery__thumb--active');
+    });
+    thumb.classList.add('gallery__thumb--active');
+    thumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+}
+</script>
+{% endblock %}

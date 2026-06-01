@@ -1,0 +1,15 @@
+{% extends 'base_auth.html' %}
+{% block title %}Вход — Igrovorot{% endblock %}
+{% block content %}
+<h2>Вход</h2>
+<div class="form-wrap">
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn--primary" style="width:100%;justify-content:center;margin-top:8px">Войти</button>
+    </form>
+</div>
+<div class="auth-card__footer">
+    Нет аккаунта? <a href="{% url 'register' %}">Зарегистрироваться</a>
+</div>
+{% endblock %}

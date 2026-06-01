@@ -1,0 +1,319 @@
+{% extends 'base.html' %}
+
+{% block title %}Панель модератора — Igrovorot{% endblock %}
+
+{% block content %}
+<div class="moderation">
+    <h1>Панель модератора</h1>
+
+    <section class="moderation__section">
+        <h2>Посты ({{ posts.paginator.count }})</h2>
+        <form method="get" class="moderation__filters">
+            <input type="hidden" name="reviews_page" value="{{ reviews.number }}">
+            <input type="hidden" name="users_page" value="{{ users.number }}">
+            <input type="hidden" name="q_reviews" value="{{ q_reviews }}">
+            <input type="hidden" name="sort_reviews" value="{{ sort_reviews }}">
+            <input type="hidden" name="q_users" value="{{ q_users }}">
+            <input type="hidden" name="status" value="{{ status }}">
+            <input type="hidden" name="sort_users" value="{{ sort_users }}">
+            <input type="text" name="q_posts" value="{{ q_posts }}" placeholder="Поиск по заголовку">
+            <select name="published">
+                <option value="">Все</option>
+                <option value="yes" {% if published == 'yes' %}selected{% endif %}>Опубликованные</option>
+                <option value="no" {% if published == 'no' %}selected{% endif %}>Неопубликованные</option>
+            </select>
+            <label><input type="checkbox" name="sort_posts" value="reports" {% if sort_posts == 'reports' %}checked{% endif %}> По жалобам ↓</label>
+            <button type="submit" class="btn btn--primary btn--sm">Применить</button>
+            {% if q_posts or published or sort_posts %}<a href="?" class="btn btn--ghost btn--sm">Сбросить</a>{% endif %}
+        </form>
+        {% if posts %}
+            <table class="moderation__table">
+                <thead>
+                    <tr>
+                        <th>Заголовок</th>
+                        <th>Автор</th>
+                        <th>Дата</th>
+                        <th>Опубликован</th>
+                        <th>Жалобы</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for post in posts %}
+                        <tr>
+                            <td><a href="{% url 'post_detail' post.pk %}">{{ post.title }}</a></td>
+                            <td><a href="{% url 'profile' post.author.username %}">{{ post.author.username }}</a></td>
+                            <td>{{ post.created_at|date:"d.m.Y" }}</td>
+                            <td>{% if post.is_published %}Да{% else %}Нет{% endif %}</td>
+                            <td>
+                                {% if post.open_reports %}
+                                    <button onclick="toggleReports('post-reports-{{ post.pk }}')" class="btn btn--outlined btn--sm">
+                                        Жалоб: {{ post.open_reports|length }}
+                                    </button>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'post_edit' post.pk %}" class="btn btn--outlined btn--sm">Редактировать</a>
+                                <a href="{% url 'post_delete' post.pk %}" class="btn btn--danger btn--sm">Удалить</a>
+                            </td>
+                        </tr>
+                        {% if post.open_reports %}
+                            <tr id="post-reports-{{ post.pk }}" style="display:none">
+                                <td colspan="6">
+                                    <table class="moderation__reports">
+                                        <thead>
+                                            <tr><th>От кого</th><th>Причина</th><th>Дата</th><th></th></tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for report in post.open_reports %}
+                                                <tr>
+                                                    <td><a href="{% url 'profile' report.user.username %}">{{ report.user.username }}</a></td>
+                                                    <td>{{ report.reason }}</td>
+                                                    <td>{{ report.created_at|date:"d.m.Y" }}</td>
+                                                    <td>
+                                                        <form method="post" action="{% url 'report_resolve' report.pk %}">
+                                                            {% csrf_token %}
+                                                            <button type="submit" class="btn btn--ghost btn--sm">Закрыть</button>
+                                                        </form>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% if posts.has_other_pages %}
+                <div class="pagination">
+                    {% if posts.has_previous %}
+                        <a href="?{{ base_query }}posts_page={{ posts.previous_page_number }}">«</a>
+                    {% endif %}
+                    <span>{{ posts.number }} / {{ posts.paginator.num_pages }}</span>
+                    {% if posts.has_next %}
+                        <a href="?{{ base_query }}posts_page={{ posts.next_page_number }}">»</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% else %}
+            <p>Постов нет.</p>
+        {% endif %}
+    </section>
+
+    <section class="moderation__section">
+        <h2>Рецензии ({{ reviews.paginator.count }})</h2>
+        <form method="get" class="moderation__filters">
+            <input type="hidden" name="posts_page" value="{{ posts.number }}">
+            <input type="hidden" name="users_page" value="{{ users.number }}">
+            <input type="hidden" name="q_posts" value="{{ q_posts }}">
+            <input type="hidden" name="published" value="{{ published }}">
+            <input type="hidden" name="sort_posts" value="{{ sort_posts }}">
+            <input type="hidden" name="q_users" value="{{ q_users }}">
+            <input type="hidden" name="status" value="{{ status }}">
+            <input type="hidden" name="sort_users" value="{{ sort_users }}">
+            <input type="text" name="q_reviews" value="{{ q_reviews }}" placeholder="Поиск по игре или автору">
+            <label><input type="checkbox" name="sort_reviews" value="reports" {% if sort_reviews == 'reports' %}checked{% endif %}> По жалобам ↓</label>
+            <button type="submit" class="btn btn--primary btn--sm">Применить</button>
+            {% if q_reviews or sort_reviews %}<a href="?" class="btn btn--ghost btn--sm">Сбросить</a>{% endif %}
+        </form>
+        {% if reviews %}
+            <table class="moderation__table">
+                <thead>
+                    <tr>
+                        <th>Игра</th>
+                        <th>Автор</th>
+                        <th>Оценка</th>
+                        <th>Дата</th>
+                        <th>Жалобы</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for review in reviews %}
+                        <tr>
+                            <td><a href="{% url 'game_detail' review.game.slug %}">{{ review.game.title }}</a></td>
+                            <td><a href="{% url 'profile' review.author.username %}">{{ review.author.username }}</a></td>
+                            <td>{{ review.rating }}/10</td>
+                            <td>{{ review.created_at|date:"d.m.Y" }}</td>
+                            <td>
+                                {% if review.open_reports %}
+                                    <button onclick="toggleReports('review-reports-{{ review.pk }}')" class="btn btn--outlined btn--sm">
+                                        Жалоб: {{ review.open_reports|length }}
+                                    </button>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'review_edit' review.pk %}" class="btn btn--outlined btn--sm">Редактировать</a>
+                                <a href="{% url 'review_delete' review.pk %}" class="btn btn--danger btn--sm">Удалить</a>
+                            </td>
+                        </tr>
+                        {% if review.open_reports %}
+                            <tr id="review-reports-{{ review.pk }}" style="display:none">
+                                <td colspan="6">
+                                    <table class="moderation__reports">
+                                        <thead>
+                                            <tr><th>От кого</th><th>Причина</th><th>Дата</th><th></th></tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for report in review.open_reports %}
+                                                <tr>
+                                                    <td><a href="{% url 'profile' report.user.username %}">{{ report.user.username }}</a></td>
+                                                    <td>{{ report.reason }}</td>
+                                                    <td>{{ report.created_at|date:"d.m.Y" }}</td>
+                                                    <td>
+                                                        <form method="post" action="{% url 'report_resolve' report.pk %}">
+                                                            {% csrf_token %}
+                                                            <button type="submit" class="btn btn--ghost btn--sm">Закрыть</button>
+                                                        </form>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% if reviews.has_other_pages %}
+                <div class="pagination">
+                    {% if reviews.has_previous %}
+                        <a href="?{{ base_query }}reviews_page={{ reviews.previous_page_number }}">«</a>
+                    {% endif %}
+                    <span>{{ reviews.number }} / {{ reviews.paginator.num_pages }}</span>
+                    {% if reviews.has_next %}
+                        <a href="?{{ base_query }}reviews_page={{ reviews.next_page_number }}">»</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% else %}
+            <p>Рецензий нет.</p>
+        {% endif %}
+    </section>
+
+    <section class="moderation__section">
+        <h2>Пользователи ({{ users.paginator.count }})</h2>
+        <form method="get" class="moderation__filters">
+            <input type="hidden" name="posts_page" value="{{ posts.number }}">
+            <input type="hidden" name="reviews_page" value="{{ reviews.number }}">
+            <input type="hidden" name="q_posts" value="{{ q_posts }}">
+            <input type="hidden" name="published" value="{{ published }}">
+            <input type="hidden" name="sort_posts" value="{{ sort_posts }}">
+            <input type="hidden" name="q_reviews" value="{{ q_reviews }}">
+            <input type="hidden" name="sort_reviews" value="{{ sort_reviews }}">
+            <input type="text" name="q_users" value="{{ q_users }}" placeholder="Поиск по имени или email">
+            <select name="status">
+                <option value="">Все</option>
+                <option value="active" {% if status == 'active' %}selected{% endif %}>Активные</option>
+                <option value="banned" {% if status == 'banned' %}selected{% endif %}>Заблокированные</option>
+            </select>
+            <label><input type="checkbox" name="sort_users" value="reports" {% if sort_users == 'reports' %}checked{% endif %}> По жалобам ↓</label>
+            <button type="submit" class="btn btn--primary btn--sm">Применить</button>
+            {% if q_users or status or sort_users %}<a href="?" class="btn btn--ghost btn--sm">Сбросить</a>{% endif %}
+        </form>
+        {% if users %}
+            <table class="moderation__table">
+                <thead>
+                    <tr>
+                        <th>Имя пользователя</th>
+                        <th>Email</th>
+                        <th>Дата регистрации</th>
+                        <th>Статус</th>
+                        <th>Жалобы</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                        <tr>
+                            <td><a href="{% url 'profile' u.username %}">{{ u.username }}</a></td>
+                            <td>{{ u.email }}</td>
+                            <td>{{ u.date_joined|date:"d.m.Y" }}</td>
+                            <td>
+                                {% if u.profile.is_banned %}
+                                    Заблокирован
+                                    {% if u.profile.banned_until %}
+                                        до {{ u.profile.banned_until|date:"d.m.Y H:i" }}
+                                    {% else %}
+                                        (бессрочно)
+                                    {% endif %}
+                                {% else %}
+                                    Активен
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if u.open_reports %}
+                                    <button onclick="toggleReports('user-reports-{{ u.pk }}')" class="btn btn--outlined btn--sm">
+                                        Жалоб: {{ u.open_reports|length }}
+                                    </button>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if u.profile.is_banned %}
+                                    <form method="post" action="{% url 'unban_user' u.username %}" style="display:inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn--secondary btn--sm">Разблокировать</button>
+                                    </form>
+                                {% else %}
+                                    <a href="{% url 'ban_user' u.username %}" class="btn btn--danger btn--sm">Заблокировать</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if u.open_reports %}
+                            <tr id="user-reports-{{ u.pk }}" style="display:none">
+                                <td colspan="6">
+                                    <table class="moderation__reports">
+                                        <thead>
+                                            <tr><th>От кого</th><th>Причина</th><th>Дата</th><th></th></tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for report in u.open_reports %}
+                                                <tr>
+                                                    <td><a href="{% url 'profile' report.user.username %}">{{ report.user.username }}</a></td>
+                                                    <td>{{ report.reason }}</td>
+                                                    <td>{{ report.created_at|date:"d.m.Y" }}</td>
+                                                    <td>
+                                                        <form method="post" action="{% url 'report_resolve' report.pk %}">
+                                                            {% csrf_token %}
+                                                            <button type="submit" class="btn btn--ghost btn--sm">Закрыть</button>
+                                                        </form>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% if users.has_other_pages %}
+                <div class="pagination">
+                    {% if users.has_previous %}
+                        <a href="?{{ base_query }}users_page={{ users.previous_page_number }}">«</a>
+                    {% endif %}
+                    <span>{{ users.number }} / {{ users.paginator.num_pages }}</span>
+                    {% if users.has_next %}
+                        <a href="?{{ base_query }}users_page={{ users.next_page_number }}">»</a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% else %}
+            <p>Пользователей нет.</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleReports(id) {
+    const row = document.getElementById(id);
+    row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+}
+</script>
+{% endblock %}

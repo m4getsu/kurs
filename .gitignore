@@ -1,0 +1,21 @@
+# Environment
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Django
+db.sqlite3
+media/
+
+# Virtual environment
+.venv/
+venv/
+
+# IDE
+.idea/
+.idea
+
+*/*/migrations/

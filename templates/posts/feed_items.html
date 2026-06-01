@@ -1,0 +1,44 @@
+{% for item in page_obj %}
+    {% if item.item_type == 'post' %}
+        <div class="feed__item">
+            <div class="feed__author">
+                <a href="/profile/{{ item.author.username }}/">{{ item.author.username }}</a>
+                <span class="feed__date">{{ item.created_at|date:"d.m.Y" }}</span>
+            </div>
+            <a href="/posts/{{ item.pk }}/" class="feed__title-link">
+                <h2 class="feed__title">{{ item.title }}</h2>
+            </a>
+            {% with first_img=item.images.first %}
+                {% if first_img %}
+                    <img class="feed__image" src="{{ first_img.image.url }}" alt="{{ item.title }}">
+                {% elif item.image %}
+                    <img class="feed__image" src="{{ item.image.url }}" alt="{{ item.title }}">
+                {% endif %}
+            {% endwith %}
+            <p class="feed__excerpt">{{ item.content|truncatewords:40 }}</p>
+            {% if item.tags %}
+                <div class="feed__tags">{{ item.tags }}</div>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="feed__item feed__item--review">
+            <div class="feed__author">
+                <a href="/profile/{{ item.author.username }}/">{{ item.author.username }}</a>
+                <span class="feed__badge">рецензия</span>
+                <span class="feed__date">{{ item.created_at|date:"d.m.Y" }}</span>
+            </div>
+            <a href="/games/{{ item.game.slug }}/" class="feed__review-game">
+                {% if item.game.cover %}
+                    <img class="feed__review-cover" src="{{ item.game.cover }}" alt="{{ item.game.title }}">
+                {% endif %}
+                <div class="feed__review-info">
+                    <span class="feed__review-title">{{ item.game.title }}</span>
+                    <span class="feed__review-rating">{{ item.rating }}/10</span>
+                </div>
+            </a>
+            {% if item.content %}
+                <p class="feed__excerpt">{{ item.content|truncatewords:30 }}</p>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endfor %}
